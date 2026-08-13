@@ -6,6 +6,7 @@ from google import genai
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 
+
 class SimpleHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -13,7 +14,6 @@ class SimpleHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"Bot OK")
 
     def log_message(self, format, *args):
-        
         return
 
 def run_dummy_server():
@@ -21,10 +21,9 @@ def run_dummy_server():
     server = HTTPServer(("0.0.0.0", port), SimpleHandler)
     server.serve_forever()
 
-# Levantar servidor en segundo plano
 threading.Thread(target=run_dummy_server, daemon=True).start()
 
-# --- CÓDIGO DE TU BOT ---
+
 load_dotenv()
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -32,18 +31,26 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
+
+user_sessions = {}
+
 async def responder(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
+    user_id = update.effective_user.id  
     
     if not GEMINI_API_KEY:
         await update.message.reply_text("ERROR: No se encontró la GEMINI_API_KEY en el .env")
         return
 
     try:
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=user_text,
-        )
+      
+        if user_id not in user_sessions:
+            user_sessions[user_id] = client.chats.create(model='gemini-2.5-flash')
+
+        chat = user_sessions[user_id]
+        
+     
+        response = chat.send_message(user_text)
         bot_reply = response.text
 
     except Exception as e:
@@ -53,7 +60,7 @@ async def responder(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(bot_reply)
 
 if __name__ == '__main__':
-    print("Iniciando bot...")
+    print("Iniciando bot con memoria...")
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), responder))
     app.run_polling()
