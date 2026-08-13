@@ -4,8 +4,8 @@ import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from dotenv import load_dotenv
 from google import genai
-from telegram import Update
-from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
+from telegram import Update, BotCommand
+from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
 
 
 class SimpleHandler(BaseHTTPRequestHandler):
@@ -34,6 +34,18 @@ client = genai.Client(api_key=GEMINI_API_KEY)
 
 user_sessions = {}
 MAX_SESSIONS = 50 
+
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    # Reinicia la sesión con Gemini para arrancar una charla limpia
+    user_sessions[user_id] = client.chats.create(model='gemini-2.5-flash')
+    
+    texto_bienvenida = (
+        "¡Hola! 👋 Soy tu asistente de IA.\n\n"
+        "Escribime cualquier consulta y te respondo al toque."
+    )
+    await update.message.reply_text(texto_bienvenida)
 
 
 async def responder(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -70,9 +82,20 @@ async def responder(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(bot_reply)
 
 
+async def post_init(application):
+
+    comandos = [
+        BotCommand("start", "Iniciar o reiniciar la conversación")
+    ]
+    await application.bot.set_my_commands(comandos)
+
+
 if __name__ == '__main__':
     print("Iniciando bot con memoria...")
-    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    app = ApplicationBuilder().token(TELEGRAM_TOKEN).post_init(post_init).build()
+    
+  
+    app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), responder))
     
     app.run_polling(drop_pending_updates=True)
