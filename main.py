@@ -25,14 +25,12 @@ def run_dummy_server():
 threading.Thread(target=run_dummy_server, daemon=True).start()
 
 
-
 load_dotenv()
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 client = genai.Client(api_key=GEMINI_API_KEY)
-
 
 user_sessions = {}
 MAX_SESSIONS = 50 
@@ -47,13 +45,11 @@ async def responder(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     try:
-       
         if len(user_sessions) > MAX_SESSIONS:
             user_sessions.clear()
 
-        
         if user_id not in user_sessions:
-           user_sessions[user_id] = client.chats.create(model='gemini-2.5-flash-lite')
+            user_sessions[user_id] = client.chats.create(model='gemini-2.5-flash')
 
         chat = user_sessions[user_id]
 
