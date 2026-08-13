@@ -33,8 +33,9 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-user_sessions = {}
 
+user_sessions = {}
+MAX_SESSIONS = 50 
 
 
 async def responder(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -46,8 +47,13 @@ async def responder(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     try:
+       
+        if len(user_sessions) > MAX_SESSIONS:
+            user_sessions.clear()
+
+        
         if user_id not in user_sessions:
-            user_sessions[user_id] = client.chats.create(model='gemini-2.5-flash')
+            user_sessions[user_id] = client.chats.create(model='gemini-1.5-flash')
 
         chat = user_sessions[user_id]
 
@@ -68,11 +74,9 @@ async def responder(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(bot_reply)
 
 
-
 if __name__ == '__main__':
     print("Iniciando bot con memoria...")
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), responder))
     
-
     app.run_polling(drop_pending_updates=True)
