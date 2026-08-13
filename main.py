@@ -1,4 +1,5 @@
 import os
+import asyncio
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from dotenv import load_dotenv
@@ -24,6 +25,7 @@ def run_dummy_server():
 threading.Thread(target=run_dummy_server, daemon=True).start()
 
 
+
 load_dotenv()
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -34,31 +36,43 @@ client = genai.Client(api_key=GEMINI_API_KEY)
 
 user_sessions = {}
 
+
 async def responder(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
     user_id = update.effective_user.id  
-    
+
     if not GEMINI_API_KEY:
-        await update.message.reply_text("ERROR: No se encontró la GEMINI_API_KEY en el .env")
+        await update.message.reply_text("ERROR: No se encontró la GEMINI_API_KEY")
         return
 
     try:
-      
+        
         if user_id not in user_sessions:
             user_sessions[user_id] = client.chats.create(model='gemini-2.5-flash')
 
         chat = user_sessions[user_id]
-        
-     
-        response = chat.send_message(user_text)
+
+       
+        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+
+       
+        response = await asyncio.to_thread(chat.send_message, user_text)
         bot_reply = response.text
 
     except Exception as e:
         print(f"Error de Python/Gemini: {e}")
         bot_reply = f"Error al procesar la respuesta: {e}"
 
-    await update.message.reply_text(bot_reply)
+    
+    max_length = 4000
+    if len(bot_reply) > max_length:
+        for i in range(0, len(bot_reply), max_length):
+            await update.message.reply_text(bot_reply[i:i + max_length])
+    else:
+        await update.message.reply_text(bot_reply)
 
+
+# --- ARRANQUE DE LA APLICACIÓN ---
 if __name__ == '__main__':
     print("Iniciando bot con memoria...")
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
