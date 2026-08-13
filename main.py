@@ -72,7 +72,7 @@ async def responder(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(bot_reply)
 
 
-# --- ARRANQUE DE LA APLICACIÓN ---
+
 if __name__ == '__main__':
     print("Iniciando bot con memoria...")
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
