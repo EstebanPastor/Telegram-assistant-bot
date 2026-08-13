@@ -53,7 +53,7 @@ async def responder(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         
         if user_id not in user_sessions:
-            user_sessions[user_id] = client.chats.create(model='gemini-1.5-flash')
+            user_sessions[user_id] = client.chats.create(model='gemini-2.0-flash')
 
         chat = user_sessions[user_id]
 
